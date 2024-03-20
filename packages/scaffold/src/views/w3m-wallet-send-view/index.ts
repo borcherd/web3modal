@@ -18,6 +18,8 @@ export class W3mWalletSendView extends LitElement {
 
   @state() private receiverAddress = SendController.state.receiverAddress
 
+  @state() private type = SendController.state.type
+
   @state() private message:
     | 'Preview Send'
     | 'Select Token'
@@ -34,6 +36,7 @@ export class W3mWalletSendView extends LitElement {
           this.token = val.token
           this.sendTokenAmount = val.sendTokenAmount
           this.receiverAddress = val.receiverAddress
+          this.type = val.type
         })
       ]
     )
@@ -46,6 +49,11 @@ export class W3mWalletSendView extends LitElement {
   // -- Render -------------------------------------------- //
   public override render() {
     this.getMessage()
+
+    const inputAddressComponent =
+      this.type === 'Address'
+        ? html`<w3m-input-address .receiverAddress=${this.receiverAddress}></w3m-input-address>`
+        : html`<w3m-input-placeholder></w3m-input-placeholder>`
 
     return html` <wui-flex flexDirection="column" .padding=${['s', 'l', 'l', 'l'] as const}>
       <wui-flex class="inputContainer" gap="xs" flexDirection="column">
@@ -61,7 +69,8 @@ export class W3mWalletSendView extends LitElement {
           background="opaque"
           icon="arrowBottom"
         ></wui-icon-box>
-        <w3m-input-address .receiverAddress=${this.receiverAddress}></w3m-input-address>
+
+        ${inputAddressComponent}
       </wui-flex>
       <wui-flex .margin=${['l', '0', '0', '0'] as const}>
         <wui-button
@@ -85,11 +94,15 @@ export class W3mWalletSendView extends LitElement {
   private getMessage() {
     this.message = 'Preview Send'
 
-    if (this.receiverAddress && !CoreHelperUtil.isAddress(this.receiverAddress)) {
+    if (
+      this.type == 'Address' &&
+      this.receiverAddress &&
+      !CoreHelperUtil.isAddress(this.receiverAddress)
+    ) {
       this.message = 'Invalid Address'
     }
 
-    if (!this.receiverAddress) {
+    if (this.type == 'Address' && !this.receiverAddress) {
       this.message = 'Add Address'
     }
 

@@ -20,4 +20,11 @@ export default css`
     --local-width: 100% !important;
     --local-border-radius: var(--wui-border-radius-xs) !important;
   }
+
+  .toComponent {
+    border: 1px solid var(--wui-gray-glass-002);
+    border-radius: var(--wui-border-radius-3xl);
+    box-shadow: 0 0 0 2px var(--wui-gray-glass-002);
+    padding: var(--wui-spacing-xs) var(--wui-spacing-s) var(--wui-spacing-xs) var(--wui-spacing-s);
+  }
 `

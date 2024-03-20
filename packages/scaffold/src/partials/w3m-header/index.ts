@@ -56,7 +56,7 @@ function headings() {
     WalletSend: 'Send',
     WalletSendPreview: 'Review send',
     WalletSendSelectToken: 'Select Token',
-    WalletSendTest: 'Send test'
+    WalletSelectSend: 'Send test'
   }
 }
 

@@ -9,6 +9,7 @@ export interface SendControllerState {
   receiverAddress?: string
   receiverProfileName?: string
   receiverProfileImageUrl?: string
+  type?: 'Address' | 'Link'
 }
 
 type StateKey = keyof SendControllerState
@@ -52,11 +53,16 @@ export const SendController = {
     state.receiverProfileName = receiverProfileName
   },
 
+  setType(type: SendControllerState['type']) {
+    state.type = type
+  },
+
   resetSend() {
     state.token = undefined
     state.sendTokenAmount = undefined
     state.receiverAddress = undefined
     state.receiverProfileImageUrl = undefined
     state.receiverProfileName = undefined
+    state.type = undefined
   }
 }

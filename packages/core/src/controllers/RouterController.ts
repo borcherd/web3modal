@@ -39,7 +39,7 @@ export interface RouterControllerState {
     | 'WhatIsANetwork'
     | 'WhatIsAWallet'
     | 'WhatIsABuy'
-    | 'WalletSendTest'
+    | 'WalletSelectSend'
   history: RouterControllerState['view'][]
   data?: {
     connector?: Connector

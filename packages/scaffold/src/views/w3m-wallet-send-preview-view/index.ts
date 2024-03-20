@@ -20,6 +20,8 @@ export class W3mWalletSendPreviewView extends LitElement {
 
   @state() private caipNetwork = NetworkController.state.caipNetwork
 
+  @state() private type = SendController.state.type
+
   public constructor() {
     super()
     this.unsubscribe.push(
@@ -28,6 +30,7 @@ export class W3mWalletSendPreviewView extends LitElement {
           this.token = val.token
           this.sendTokenAmount = val.sendTokenAmount
           this.receiverAddress = val.receiverAddress
+          this.type = val.type
         }),
         NetworkController.subscribeKey('caipNetwork', val => (this.caipNetwork = val))
       ]
@@ -40,6 +43,20 @@ export class W3mWalletSendPreviewView extends LitElement {
 
   // -- Render -------------------------------------------- //
   public override render() {
+    const toComponent =
+      this.type === 'Address'
+        ? html`<wui-preview-item
+            text=${UiHelperUtil.getTruncateString({
+              string: this.receiverAddress ?? '',
+              charsStart: 4,
+              charsEnd: 4,
+              truncate: 'middle'
+            })}
+            address=${this.receiverAddress ?? ''}
+            .isAddress=${true}
+          ></wui-preview-item>`
+        : html`<wui-text color="accent-100" class="toComponent">Generate link</wui-text>`
+
     return html` <wui-flex flexDirection="column" .padding=${['s', 'l', 'l', 'l'] as const}>
       <wui-flex gap="xs" flexDirection="column" .padding=${['0', 'xs', '0', 'xs'] as const}>
         <wui-flex alignItems="center" justifyContent="space-between">
@@ -57,16 +74,7 @@ export class W3mWalletSendPreviewView extends LitElement {
         </wui-flex>
         <wui-flex alignItems="center" justifyContent="space-between">
           <wui-text variant="small-400" color="fg-150">To</wui-text>
-          <wui-preview-item
-            text=${UiHelperUtil.getTruncateString({
-              string: this.receiverAddress ?? '',
-              charsStart: 4,
-              charsEnd: 4,
-              truncate: 'middle'
-            })}
-            address=${this.receiverAddress ?? ''}
-            .isAddress=${true}
-          ></wui-preview-item>
+          ${toComponent}
         </wui-flex>
       </wui-flex>
       <wui-flex flexDirection="column" .padding=${['xxl', '0', '0', '0'] as const}>
@@ -93,7 +101,7 @@ export class W3mWalletSendPreviewView extends LitElement {
             size="lg"
             variant="fill"
           >
-            Send
+            ${this.type == 'Address' ? 'Send' : 'Copy link and send'}
           </wui-button>
         </wui-flex>
       </wui-flex></wui-flex
