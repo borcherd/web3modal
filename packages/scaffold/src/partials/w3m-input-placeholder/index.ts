@@ -12,17 +12,25 @@ export class W3mInputPlaceholder extends LitElement {
   // -- Render -------------------------------------------- //
   public override render() {
     return html` <wui-flex
-      flexDirection="column"
+      flexDirection="row"
       justifyContent="center"
       alignItems="center"
       gap="4xs"
-      .padding=${['2xl', 'l', 'xl', 'l'] as const}
+      .padding=${['xl', 'l', 'xl', 'l'] as const}
     >
-      <wui-text class="instruction" color="accent-100" variant="medium-400">
+      <wui-icon-box
+        ?border=${false}
+        icon="linkConnect"
+        size="s"
+        backgroundColor="glass-005"
+        iconColor="accent-100"
+        iconSize="s"
+      ></wui-icon-box>
+      <wui-text class="instruction" color="accent-100" variant="medium-400" icon="search">
         Generate link
       </wui-text>
     </wui-flex>`
-  }
+  } // TODO: Icon and text have diff colours
 
   // -- Private ------------------------------------------- //
 }

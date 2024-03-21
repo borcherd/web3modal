@@ -55,7 +55,9 @@ export class W3mWalletSendPreviewView extends LitElement {
             address=${this.receiverAddress ?? ''}
             .isAddress=${true}
           ></wui-preview-item>`
-        : html`<wui-text color="accent-100" class="toComponent">Generate link</wui-text>`
+        : html`<wui-text color="accent-100" class="toComponent" icon="linkConnect"
+            >Generate link</wui-text
+          >`
 
     return html` <wui-flex flexDirection="column" .padding=${['s', 'l', 'l', 'l'] as const}>
       <wui-flex gap="xs" flexDirection="column" .padding=${['0', 'xs', '0', 'xs'] as const}>

@@ -11,6 +11,9 @@ import { CoreHelperUtil } from '../utils/CoreHelperUtil'
 import { SnackController } from './SnackController'
 import { ConnectionController } from './ConnectionController'
 import { AccountController } from './AccountController'
+import { polygon } from '@wagmi/core/chains'
+import { NetworkController } from './NetworkController'
+import type { CaipNetwork } from '../..'
 
 // -- Types --------------------------------------------- //
 export interface SendControllerState {
@@ -93,9 +96,23 @@ export const SendController = {
         tokenType: 0
       } // TODO: update these values
 
-      console.log(address)
       console.log(linkDetails)
-      console.log(chainId)
+
+      const network = NetworkController.state.caipNetwork
+      if (network && network.id != state.token?.chainId) {
+        const { approvedCaipNetworkIds, requestedCaipNetworks } = NetworkController.state
+
+        const sortedNetworks = CoreHelperUtil.sortRequestedNetworks(
+          approvedCaipNetworkIds,
+          requestedCaipNetworks
+        )
+        const requestedNetwork = sortedNetworks.find(
+          (network: CaipNetwork) => network.id === (state.token?.chainId as `${string}:${string}`)
+        )
+
+        await NetworkController.switchActiveNetwork(requestedNetwork as CaipNetwork)
+        await NetworkController.setCaipNetwork(requestedNetwork as CaipNetwork)
+      }
 
       const preparedDeposits = await prepareDepositTxs({
         passwords: [password],
@@ -118,20 +135,20 @@ export const SendController = {
           console.log('error setting fee options, fallback to default')
         }
 
-        console.log(txOptions)
         const hash = await ConnectionController.sendTransaction({
-          to: (tx.to ? tx.to : '') as `0x${string}`,
+          to: address as `0x${string}`,
           value: tx.value ? BigInt(tx.value.toString()) : undefined,
-          data: tx.data ? (tx.data as `0x${string}`) : undefined,
-          chainId: Number(chainId),
-          gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
-          gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
-          maxFeePerGas: txOptions?.maxFeePerGas
-            ? BigInt(txOptions?.maxFeePerGas.toString())
-            : undefined,
-          maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
-            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
-            : undefined
+          account: address as `0x${string}`
+          // to: (tx.to ? tx.to : '') as `0x${string}`,
+          // value: tx.value ? BigInt(tx.value.toString()) : undefined,
+          // data: tx.data ? (tx.data as `0x${string}`) : undefined
+          // chainId: polygon.id,
+          // maxFeePerGas: txOptions?.maxFeePerGas
+          //   ? BigInt(txOptions?.maxFeePerGas.toString())
+          //   : undefined,
+          // maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+          //   ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+          //   : undefined
         })
 
         console.log(hash)
@@ -140,15 +157,15 @@ export const SendController = {
         idx++
       }
 
-      const link = await getLinksFromTx({
-        linkDetails,
-        passwords: [password],
-        txHash: signedTxsResponse[signedTxsResponse.length - 1] ?? ''
-      })
+      // const link = await getLinksFromTx({
+      //   linkDetails,
+      //   passwords: [password],
+      //   txHash: signedTxsResponse[signedTxsResponse.length - 1] ?? ''
+      // })
 
-      // const link = { links: ['test'] }
-      CoreHelperUtil.copyToClopboard(link.links[0] ?? '')
-      SnackController.showSuccess('Link copied')
+      // // const link = { links: ['test'] }
+      // CoreHelperUtil.copyToClopboard(link.links[0] ?? '')
+      // SnackController.showSuccess('Link copied')
     } catch (error) {
       console.log(error)
     }

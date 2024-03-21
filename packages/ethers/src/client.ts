@@ -280,6 +280,17 @@ export class Web3Modal extends Web3ModalScaffold {
 
         return signature as `0x${string}`
       }
+
+      // sendTransaction: async (tx) => {
+      //   const provider = EthersStoreUtil.state.provider
+      //   if (!provider) {
+      //     throw new Error('connectionControllerClient:sendTransaction - provider is undefined')
+      //   }
+
+      //   const hash = await provider.('eth_sendTransaction', [tx])
+
+      //   return hash as `0x${string}`
+      // }
     }
 
     super({

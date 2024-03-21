@@ -45,16 +45,15 @@ export class W3mInputAddressOrName extends LitElement {
       >
         Type name or address
       </wui-text>
-      <textarea
-        ?disabled=${!this.instructionHidden}
-        ${ref(this.inputElementRef)}
-        @input=${this.onInputChange.bind(this)}
-        @blur=${this.onBlur.bind(this)}
-        .value=${this.receiverAddress ?? ''}
+      <input
+        type="text"
+        ?disabled="${!this.instructionHidden}"
+        @input="${this.onInputChange.bind(this)}"
+        @blur="${this.onBlur.bind(this)}"
+        .value="${this.receiverAddress ?? ''}"
         autocomplete="off"
-      >
-${this.receiverAddress ?? ''}</textarea
-      >
+        ${ref(this.inputElementRef)}
+      />
     </wui-flex>`
   }
 

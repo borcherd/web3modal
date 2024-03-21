@@ -157,6 +157,7 @@ export type IconType =
   | 'walletConnect'
   | 'walletPlaceholder'
   | 'warningCircle'
+  | 'linkConnect'
 
 export type VisualType =
   | 'browser'
