@@ -86,17 +86,28 @@ export const SendController = {
       const chainId = state.token?.chainId.split(':')[1]
       const address = AccountController.state.address
       const password = await getRandomString(16)
+      //@ts-ignore-next-line - tokenAddress isnt updated in api spec yet
+      let tokenAddress = state.token?.address.split(':')[2]
+      if (
+        !tokenAddress ||
+        tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000001010'
+      ) {
+        tokenAddress = '0x0000000000000000000000000000000000000000'
+      }
+
+      let tokenType = 1
+      if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
+        tokenType = 0
+      }
 
       const linkDetails = {
         chainId: chainId ?? '',
         tokenAmount: state.sendTokenAmount ?? 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
+        tokenAddress,
+        tokenDecimals: Number(state.token?.quantity.decimals) ?? 18,
         trackId: 'walletconnect',
-        tokenType: 0
-      } // TODO: update these values
-
-      console.log(linkDetails)
+        tokenType: tokenType
+      }
 
       const network = NetworkController.state.caipNetwork
       if (network && network.id != state.token?.chainId) {
@@ -120,8 +131,6 @@ export const SendController = {
         linkDetails
       })
 
-      console.log(preparedDeposits)
-
       let idx = 0
       const signedTxsResponse: string[] = []
 
@@ -134,38 +143,37 @@ export const SendController = {
         } catch (error: any) {
           console.log('error setting fee options, fallback to default')
         }
-
+        console.log('before')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        console.log('after')
         const hash = await ConnectionController.sendTransaction({
-          to: address as `0x${string}`,
+          to: (tx.to ? tx.to : '') as `0x${string}`,
           value: tx.value ? BigInt(tx.value.toString()) : undefined,
-          account: address as `0x${string}`
-          // to: (tx.to ? tx.to : '') as `0x${string}`,
-          // value: tx.value ? BigInt(tx.value.toString()) : undefined,
-          // data: tx.data ? (tx.data as `0x${string}`) : undefined
-          // chainId: polygon.id,
-          // maxFeePerGas: txOptions?.maxFeePerGas
-          //   ? BigInt(txOptions?.maxFeePerGas.toString())
-          //   : undefined,
-          // maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
-          //   ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
-          //   : undefined
+          data: tx.data ? (tx.data as `0x${string}`) : undefined,
+          chainId: Number(chainId),
+          maxFeePerGas: txOptions?.maxFeePerGas
+            ? BigInt(txOptions?.maxFeePerGas.toString())
+            : undefined,
+          maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+            : undefined,
+          gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+          gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined
         })
-
-        console.log(hash)
 
         signedTxsResponse.push(hash.toString())
         idx++
       }
 
-      // const link = await getLinksFromTx({
-      //   linkDetails,
-      //   passwords: [password],
-      //   txHash: signedTxsResponse[signedTxsResponse.length - 1] ?? ''
-      // })
+      const link = await getLinksFromTx({
+        linkDetails,
+        passwords: [password],
+        txHash: signedTxsResponse[signedTxsResponse.length - 1] ?? ''
+      })
 
-      // // const link = { links: ['test'] }
-      // CoreHelperUtil.copyToClopboard(link.links[0] ?? '')
-      // SnackController.showSuccess('Link copied')
+      // const link = { links: ['test'] }
+      CoreHelperUtil.copyToClopboard(link.links[0] ?? '')
+      SnackController.showSuccess('Link copied')
     } catch (error) {
       console.log(error)
     }

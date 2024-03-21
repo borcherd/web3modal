@@ -90,7 +90,11 @@ export const ConnectionController = {
   },
 
   async sendTransaction(args: SendTransactionParameters) {
-    return this._getClient().sendTransaction?.(args)
+    const client = this._getClient()
+    if (!client.sendTransaction) {
+      throw new Error('sendTransaction not implemented')
+    }
+    return client.sendTransaction(args)
   },
 
   resetWcConnection() {
