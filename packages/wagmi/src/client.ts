@@ -9,7 +9,8 @@ import {
   getAccount,
   switchChain,
   watchAccount,
-  watchConnectors
+  watchConnectors,
+  sendTransaction
 } from '@wagmi/core'
 import { mainnet } from 'viem/chains'
 import type { Chain } from '@wagmi/core/chains'
@@ -168,7 +169,9 @@ export class Web3Modal extends Web3ModalScaffold {
         }
       },
 
-      signMessage: async message => signMessage(this.wagmiConfig, { message })
+      signMessage: async message => signMessage(this.wagmiConfig, { message }),
+
+      sendTransaction: async args => sendTransaction(this.wagmiConfig, args)
     }
 
     super({

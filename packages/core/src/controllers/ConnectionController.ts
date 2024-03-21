@@ -4,6 +4,7 @@ import { CoreHelperUtil } from '../utils/CoreHelperUtil.js'
 import { StorageUtil } from '../utils/StorageUtil.js'
 import type { Connector, WcWallet } from '../utils/TypeUtil.js'
 import { TransactionsController } from './TransactionsController.js'
+import { type SendTransactionParameters } from '@wagmi/core'
 
 // -- Types --------------------------------------------- //
 export interface ConnectExternalOptions {
@@ -19,6 +20,7 @@ export interface ConnectionControllerClient {
   signMessage: (message: string) => Promise<string>
   connectExternal?: (options: ConnectExternalOptions) => Promise<void>
   checkInstalled?: (ids?: string[]) => boolean
+  sendTransaction?: (args: SendTransactionParameters) => any
 }
 
 export interface ConnectionControllerState {
@@ -85,6 +87,10 @@ export const ConnectionController = {
 
   checkInstalled(ids?: string[]) {
     return this._getClient().checkInstalled?.(ids)
+  },
+
+  async sendTransaction(args: SendTransactionParameters) {
+    return this._getClient().sendTransaction?.(args)
   },
 
   resetWcConnection() {

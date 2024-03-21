@@ -122,11 +122,12 @@ export class W3mWalletSendPreviewView extends LitElement {
     return null
   }
 
-  private onSendClick() {
-    RouterController.reset('Account')
-    setTimeout(() => {
-      SendController.resetSend()
-    }, 200)
+  private async onSendClick() {
+    await SendController.generateLink()
+    // RouterController.reset('Account')
+    // setTimeout(() => {
+    //   SendController.resetSend()
+    // }, 200)
   }
 
   private onCancelClick() {
