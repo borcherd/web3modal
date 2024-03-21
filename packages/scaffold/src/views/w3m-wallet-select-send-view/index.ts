@@ -35,7 +35,11 @@ export class W3mWalletSelectSend extends LitElement {
   public override render() {
     this.getMessage()
 
-    return html` <wui-flex flexDirection="column" .padding=${['s', 'l', 'l', 'l'] as const}>
+    return html` <wui-flex
+      flexDirection="column"
+      gap="2px"
+      .padding=${['s', 'l', 'l', 'l'] as const}
+    >
       <wui-flex class="inputContainer" gap="xs" flexDirection="column">
         <w3m-input-address-or-name
           .receiverAddress=${this.receiverAddress}
@@ -47,7 +51,7 @@ export class W3mWalletSelectSend extends LitElement {
         <wui-separator></wui-separator>
       </wui-flex>
 
-      <wui-flex .margin=${['l', '0', '0', '0'] as const}>
+      <wui-flex .margin=${['0', '0', '0', '0'] as const}>
         <wui-button
           @click=${this.onButtonClick.bind(this)}
           ?disabled=${!this.message.startsWith('Generate link') && !this.message.startsWith('Send')}
@@ -55,11 +59,12 @@ export class W3mWalletSelectSend extends LitElement {
           variant="accentBg"
           fullWidth
         >
+          <wui-icon size="s" color="accent-100" slot="iconLeft" name="linkConnect"></wui-icon>
           ${this.message}
         </wui-button>
       </wui-flex>
     </wui-flex>`
-  }
+  } // TODO: icon color is different from button text color
 
   // -- Private ------------------------------------------- //
   private onButtonClick() {

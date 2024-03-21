@@ -53,4 +53,24 @@ export default css`
     resize: none;
     overflow: hidden;
   }
+
+  input[type='text'] {
+    background: transparent;
+    width: 100%;
+    font-family: var(--w3m-font-family);
+    font-size: var(--wui-font-size-medium);
+    font-style: normal;
+    font-weight: var(--wui-font-weight-light);
+    line-height: 130%;
+    letter-spacing: var(--wui-letter-spacing-medium);
+    color: var(--wui-color-fg-100);
+    caret-color: var(--wui-color-accent-100);
+    box-sizing: border-box;
+    padding: 0px;
+    border: none;
+    outline: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 `

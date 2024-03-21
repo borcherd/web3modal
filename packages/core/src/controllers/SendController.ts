@@ -11,6 +11,9 @@ import { CoreHelperUtil } from '../utils/CoreHelperUtil'
 import { SnackController } from './SnackController'
 import { ConnectionController } from './ConnectionController'
 import { AccountController } from './AccountController'
+import { polygon } from '@wagmi/core/chains'
+import { NetworkController } from './NetworkController'
+import type { CaipNetwork } from '../..'
 
 // -- Types --------------------------------------------- //
 export interface SendControllerState {
@@ -83,27 +86,50 @@ export const SendController = {
       const chainId = state.token?.chainId.split(':')[1]
       const address = AccountController.state.address
       const password = await getRandomString(16)
+      //@ts-ignore-next-line - tokenAddress isnt updated in api spec yet
+      let tokenAddress = state.token?.address.split(':')[2]
+      if (
+        !tokenAddress ||
+        tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000001010'
+      ) {
+        tokenAddress = '0x0000000000000000000000000000000000000000'
+      }
+
+      let tokenType = 1
+      if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
+        tokenType = 0
+      }
 
       const linkDetails = {
         chainId: chainId ?? '',
         tokenAmount: state.sendTokenAmount ?? 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
+        tokenAddress,
+        tokenDecimals: Number(state.token?.quantity.decimals) ?? 18,
         trackId: 'walletconnect',
-        tokenType: 0
-      } // TODO: update these values
+        tokenType: tokenType
+      }
 
-      console.log(address)
-      console.log(linkDetails)
-      console.log(chainId)
+      const network = NetworkController.state.caipNetwork
+      if (network && network.id != state.token?.chainId) {
+        const { approvedCaipNetworkIds, requestedCaipNetworks } = NetworkController.state
+
+        const sortedNetworks = CoreHelperUtil.sortRequestedNetworks(
+          approvedCaipNetworkIds,
+          requestedCaipNetworks
+        )
+        const requestedNetwork = sortedNetworks.find(
+          (network: CaipNetwork) => network.id === (state.token?.chainId as `${string}:${string}`)
+        )
+
+        await NetworkController.switchActiveNetwork(requestedNetwork as CaipNetwork)
+        await NetworkController.setCaipNetwork(requestedNetwork as CaipNetwork)
+      }
 
       const preparedDeposits = await prepareDepositTxs({
         passwords: [password],
         address: address ?? '',
         linkDetails
       })
-
-      console.log(preparedDeposits)
 
       let idx = 0
       const signedTxsResponse: string[] = []
@@ -117,24 +143,23 @@ export const SendController = {
         } catch (error: any) {
           console.log('error setting fee options, fallback to default')
         }
-
-        console.log(txOptions)
+        console.log('before')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        console.log('after')
         const hash = await ConnectionController.sendTransaction({
           to: (tx.to ? tx.to : '') as `0x${string}`,
           value: tx.value ? BigInt(tx.value.toString()) : undefined,
           data: tx.data ? (tx.data as `0x${string}`) : undefined,
           chainId: Number(chainId),
-          gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
-          gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
           maxFeePerGas: txOptions?.maxFeePerGas
             ? BigInt(txOptions?.maxFeePerGas.toString())
             : undefined,
           maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
             ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
-            : undefined
+            : undefined,
+          gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+          gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined
         })
-
-        console.log(hash)
 
         signedTxsResponse.push(hash.toString())
         idx++

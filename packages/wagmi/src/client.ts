@@ -171,7 +171,12 @@ export class Web3Modal extends Web3ModalScaffold {
 
       signMessage: async message => signMessage(this.wagmiConfig, { message }),
 
-      sendTransaction: async args => sendTransaction(this.wagmiConfig, args)
+      sendTransaction: async args => {
+        console.log(args)
+        console.log(this.getCaipNetwork())
+        console.log(this.wagmiConfig)
+        sendTransaction(this.wagmiConfig, { ...args })
+      }
     }
 
     super({

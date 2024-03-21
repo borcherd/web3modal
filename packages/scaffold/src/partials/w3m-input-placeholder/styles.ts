@@ -15,14 +15,8 @@ export default css`
     background-color: var(--wui-gray-glass-005);
   }
 
-  wui-flex {
-    width: 100%;
-    height: fit-content;
-  }
-
   .instruction {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    font-weight: var(--wui-font-weight-medium);
+    font-size: var(--wui-font-size-paragraph);
   }
 `

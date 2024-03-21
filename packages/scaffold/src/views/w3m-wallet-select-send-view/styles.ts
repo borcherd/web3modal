@@ -24,6 +24,8 @@ export default css`
 
   wui-button {
     --local-border-radius: var(--wui-border-radius-xs) !important;
+    font-weight: var(--wui-font-weight-medium);
+    font-size: var(--wui-font-size-paragraph);
   }
 
   .inputContainer {

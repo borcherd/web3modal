@@ -26,7 +26,10 @@ import {
   formatEther,
   JsonRpcProvider,
   InfuraProvider,
-  getAddress as getOriginalAddress
+  getAddress as getOriginalAddress,
+  JsonRpcSigner,
+  BrowserProvider,
+  ethers
 } from 'ethers'
 import {
   EthersConstantsUtil,
@@ -279,6 +282,55 @@ export class Web3Modal extends Web3ModalScaffold {
         })
 
         return signature as `0x${string}`
+      },
+
+      // sendTransaction: async (tx) => {
+      //   const provider = EthersStoreUtil.state.provider
+      //   if (!provider) {
+      //     throw new Error('connectionControllerClient:sendTransaction - provider is undefined')
+      //   }
+
+      //   const hash = await ('eth_sendTransaction', [tx])
+
+      //   return hash as `0x${string}`
+      // }
+
+      sendTransaction: async args => {
+        const walletProvider = EthersStoreUtil.state.provider
+        if (!walletProvider) {
+          return
+        }
+
+        // const txHash = await walletProvider.request({
+        //   method: 'eth_sendTransaction',
+        //   params: { ...args }
+        // })
+
+        // console.log('txHash', txHash)
+
+        console.log(walletProvider)
+
+        const provider = new BrowserProvider(walletProvider, this.getChainId())
+        const signer = new JsonRpcSigner(provider, this.getAddress() ?? '')
+
+        const tx = await signer.populateTransaction({
+          to: args.to,
+          value: args.value,
+          data: args.data,
+          maxFeePerGas: args.maxFeePerGas,
+          maxPriorityFeePerGas: args.maxPriorityFeePerGas,
+          chainId: args.chainId
+        })
+
+        console.log('tx', tx)
+
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        const txHash = await signer.sendTransaction(tx)
+
+        console.log('txHash', txHash)
+
+        return txHash.hash
       }
     }
 
