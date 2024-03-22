@@ -11,6 +11,7 @@ import { RouterController } from './RouterController.js'
 export interface ModalControllerState {
   loading: boolean
   open: boolean
+  stayOpen: boolean
 }
 
 export interface ModalControllerArguments {
@@ -24,7 +25,9 @@ type StateKey = keyof ModalControllerState
 // -- State --------------------------------------------- //
 const state = proxy<ModalControllerState>({
   loading: false,
-  open: false
+  open: false,
+  stayOpen: false,
+  rpcResponded: false
 })
 
 // -- Controller ---------------------------------------- //
@@ -67,6 +70,10 @@ export const ModalController = {
       event: 'MODAL_CLOSE',
       properties: { connected }
     })
+  },
+
+  setStayOpen(stayOpen: ModalControllerState['stayOpen']) {
+    state.stayOpen = stayOpen
   },
 
   setLoading(loading: ModalControllerState['loading']) {

@@ -30,6 +30,7 @@ export class W3mApproveTransactionView extends LitElement {
   }
 
   public override disconnectedCallback() {
+    this.onHideIframe()
     this.unsubscribe.forEach(unsubscribe => unsubscribe())
     this.bodyObserver?.unobserve(window.document.body)
   }

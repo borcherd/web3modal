@@ -11,6 +11,7 @@ import type {
   Token
 } from '@web3modal/scaffold'
 import { Web3ModalScaffold } from '@web3modal/scaffold'
+import { ModalController, RouterController } from '@web3modal/core'
 import { ConstantsUtil, PresetsUtil, HelpersUtil } from '@web3modal/scaffold-utils'
 import EthereumProvider from '@walletconnect/ethereum-provider'
 import type { Web3ModalSIWEClient } from '@web3modal/siwe'
@@ -848,7 +849,14 @@ export class Web3Modal extends Web3ModalScaffold {
         }
       })
       this.emailProvider.onRpcResponse(() => {
-        super.close()
+        if (
+          RouterController.state.view === 'ApproveTransaction' &&
+          ModalController.state.stayOpen
+        ) {
+          RouterController.push('Account')
+        } else if (!ModalController.state.stayOpen) {
+          super.close()
+        }
       })
       this.emailProvider.onNotConnected(() => {
         this.setIsConnected(false)

@@ -2,7 +2,14 @@ import { UiHelperUtil, customElement } from '@web3modal/ui'
 import { LitElement, html } from 'lit'
 import styles from './styles.js'
 import { state } from 'lit/decorators.js'
-import { NetworkController, RouterController, SendController } from '@web3modal/core'
+import {
+  CoreHelperUtil,
+  ModalController,
+  NetworkController,
+  RouterController,
+  SendController,
+  SnackController
+} from '@web3modal/core'
 
 @customElement('w3m-wallet-send-preview-view')
 export class W3mWalletSendPreviewView extends LitElement {
@@ -125,8 +132,12 @@ export class W3mWalletSendPreviewView extends LitElement {
   }
 
   private async onSendClick() {
+    ModalController.close()
+
     await SendController.generateLink()
-    // RouterController.reset('Account')
+
+    ModalController.setStayOpen(false)
+
     // setTimeout(() => {
     //   SendController.resetSend()
     // }, 200)

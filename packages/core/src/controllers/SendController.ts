@@ -14,6 +14,7 @@ import { AccountController } from './AccountController'
 import { polygon } from '@wagmi/core/chains'
 import { NetworkController } from './NetworkController'
 import type { CaipNetwork } from '../..'
+import { ModalController } from './ModalController'
 
 // -- Types --------------------------------------------- //
 export interface SendControllerState {
@@ -83,6 +84,7 @@ export const SendController = {
     if (!state.token) return
 
     try {
+      ModalController.setStayOpen(true)
       const chainId = state.token?.chainId.split(':')[1]
       const address = AccountController.state.address
       const password = await getRandomString(16)
@@ -171,9 +173,12 @@ export const SendController = {
         txHash: signedTxsResponse[signedTxsResponse.length - 1] ?? ''
       })
 
-      // const link = { links: ['test'] }
+      console.log(link, `link generated ✨`)
+
       CoreHelperUtil.copyToClopboard(link.links[0] ?? '')
       SnackController.showSuccess('Link copied')
+
+      // const link = { links: ['test'] }
     } catch (error) {
       console.log(error)
     }
