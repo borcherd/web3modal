@@ -11,7 +11,7 @@ import { CoreHelperUtil } from '../utils/CoreHelperUtil'
 import { SnackController } from './SnackController'
 import { ConnectionController } from './ConnectionController'
 import { AccountController } from './AccountController'
-import { polygon } from '@wagmi/core/chains'
+
 import { NetworkController } from './NetworkController'
 import type { CaipNetwork } from '../..'
 import { ModalController } from './ModalController'
@@ -24,6 +24,8 @@ export interface SendControllerState {
   receiverProfileName?: string
   receiverProfileImageUrl?: string
   type?: 'Address' | 'Link'
+  createdLink?: string
+  loading?: boolean
 }
 
 type StateKey = keyof SendControllerState
@@ -71,6 +73,14 @@ export const SendController = {
     state.type = type
   },
 
+  setCreatedLink(createdLink: SendControllerState['createdLink']) {
+    state.createdLink = createdLink
+  },
+
+  setLoading(loading: SendControllerState['loading']) {
+    state.loading = loading
+  },
+
   resetSend() {
     state.token = undefined
     state.sendTokenAmount = undefined
@@ -78,12 +88,15 @@ export const SendController = {
     state.receiverProfileImageUrl = undefined
     state.receiverProfileName = undefined
     state.type = undefined
+    state.createdLink = undefined
+    state.loading = false
   },
 
   async generateLink() {
     if (!state.token) return
 
     try {
+      this.setLoading(true)
       ModalController.setStayOpen(true)
       const chainId = state.token?.chainId.split(':')[1]
       const address = AccountController.state.address
@@ -133,6 +146,8 @@ export const SendController = {
         linkDetails
       })
 
+      console.log('prepared deposits', preparedDeposits.unsignedTxs)
+
       let idx = 0
       const signedTxsResponse: string[] = []
 
@@ -178,7 +193,7 @@ export const SendController = {
       CoreHelperUtil.copyToClopboard(link.links[0] ?? '')
       SnackController.showSuccess('Link copied')
 
-      // const link = { links: ['test'] }
+      this.setCreatedLink(link.links[0] ?? '')
     } catch (error) {
       console.log(error)
     }

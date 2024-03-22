@@ -29,6 +29,10 @@ export class W3mWalletSendPreviewView extends LitElement {
 
   @state() private type = SendController.state.type
 
+  @state() private createdLink = SendController.state.createdLink
+
+  @state() private loading = SendController.state.loading
+
   public constructor() {
     super()
     this.unsubscribe.push(
@@ -38,10 +42,20 @@ export class W3mWalletSendPreviewView extends LitElement {
           this.sendTokenAmount = val.sendTokenAmount
           this.receiverAddress = val.receiverAddress
           this.type = val.type
+          this.createdLink = val.createdLink
+          this.loading = val.loading
         }),
         NetworkController.subscribeKey('caipNetwork', val => (this.caipNetwork = val))
       ]
     )
+  }
+
+  protected override updated(changedProperties: Map<string | number | symbol, unknown>): void {
+    if (changedProperties.has('createdLink') && this.createdLink) {
+      SnackController.showSuccess('Link copied')
+      SendController.resetSend()
+      RouterController.push('Account')
+    }
   }
 
   public override disconnectedCallback() {
@@ -109,8 +123,13 @@ export class W3mWalletSendPreviewView extends LitElement {
             @click=${this.onSendClick.bind(this)}
             size="lg"
             variant="fill"
+            ?disabled=${this.loading}
           >
-            ${this.type == 'Address' ? 'Send' : 'Copy link and send'}
+            ${this.loading
+              ? html`<wui-loading-spinner size="md" color="fg-150"></wui-loading-spinner>`
+              : this.type == 'Address'
+                ? 'Send'
+                : 'Copy link and send'}
           </wui-button>
         </wui-flex>
       </wui-flex></wui-flex
@@ -134,8 +153,11 @@ export class W3mWalletSendPreviewView extends LitElement {
   private async onSendClick() {
     ModalController.close()
 
+    SendController.setLoading(true)
+
     await SendController.generateLink()
 
+    // @ts-ignore
     ModalController.setStayOpen(false)
 
     // setTimeout(() => {

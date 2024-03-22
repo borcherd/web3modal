@@ -853,7 +853,7 @@ export class Web3Modal extends Web3ModalScaffold {
           RouterController.state.view === 'ApproveTransaction' &&
           ModalController.state.stayOpen
         ) {
-          RouterController.push('Account')
+          RouterController.push('WalletSendPreview')
         } else if (!ModalController.state.stayOpen) {
           super.close()
         }

@@ -12,6 +12,7 @@ export interface ModalControllerState {
   loading: boolean
   open: boolean
   stayOpen: boolean
+  rpcResponded: boolean
 }
 
 export interface ModalControllerArguments {
