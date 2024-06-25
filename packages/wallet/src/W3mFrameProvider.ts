@@ -1,8 +1,15 @@
 import { W3mFrame } from './W3mFrame.js'
 import type { W3mFrameTypes } from './W3mFrameTypes.js'
-import { W3mFrameConstants, W3mFrameRpcConstants } from './W3mFrameConstants.js'
+import { DEFAULT_LOG_LEVEL, W3mFrameConstants, W3mFrameRpcConstants } from './W3mFrameConstants.js'
 import { W3mFrameStorage } from './W3mFrameStorage.js'
 import { W3mFrameHelpers } from './W3mFrameHelpers.js'
+import {
+  generateChildLogger,
+  generatePlatformLogger,
+  getDefaultLoggerOptions,
+  type ChunkLoggerController,
+  type Logger
+} from '@walletconnect/logger'
 
 // -- Types -----------------------------------------------------------
 type Resolver<T> = { resolve: (value: T) => void; reject: (reason?: unknown) => void } | undefined
@@ -10,12 +17,16 @@ type ConnectEmailResolver = Resolver<W3mFrameTypes.Responses['FrameConnectEmailR
 type ConnectDeviceResolver = Resolver<undefined>
 type ConnectOtpResolver = Resolver<undefined>
 type ConnectResolver = Resolver<W3mFrameTypes.Responses['FrameGetUserResponse']>
+type ConnectSocialResolver = Resolver<W3mFrameTypes.Responses['FrameGetUserResponse']>
 type DisconnectResolver = Resolver<undefined>
 type IsConnectedResolver = Resolver<W3mFrameTypes.Responses['FrameIsConnectedResponse']>
 type GetChainIdResolver = Resolver<W3mFrameTypes.Responses['FrameGetChainIdResponse']>
+type GetSocialRedirectUriResolver = Resolver<
+  W3mFrameTypes.Responses['FrameGetSocialRedirectUriResponse']
+>
 type SwitchChainResolver = Resolver<W3mFrameTypes.Responses['FrameSwitchNetworkResponse']>
 type RpcRequestResolver = Resolver<W3mFrameTypes.RPCResponse>
-type UpdateEmailResolver = Resolver<undefined>
+type UpdateEmailResolver = Resolver<W3mFrameTypes.Responses['FrameUpdateEmailResponse']>
 type UpdateEmailPrimaryOtpResolver = Resolver<undefined>
 type UpdateEmailSecondaryOtpResolver = Resolver<
   W3mFrameTypes.Responses['FrameUpdateEmailSecondaryOtpResolver']
@@ -25,7 +36,6 @@ type SyncDappDataResolver = Resolver<undefined>
 type SmartAccountEnabledNetworksResolver = Resolver<
   W3mFrameTypes.Responses['FrameGetSmartAccountEnabledNetworksResponse']
 >
-type InitSmartAccountResolver = Resolver<W3mFrameTypes.Responses['FrameInitSmartAccountResponse']>
 type SetPreferredAccountResolver = Resolver<undefined>
 
 // -- Provider --------------------------------------------------------
@@ -40,11 +50,15 @@ export class W3mFrameProvider {
 
   private connectResolver: ConnectResolver = undefined
 
+  private connectSocialResolver: ConnectSocialResolver = undefined
+
   private disconnectResolver: DisconnectResolver = undefined
 
   private isConnectedResolver: IsConnectedResolver = undefined
 
   private getChainIdResolver: GetChainIdResolver = undefined
+
+  private getSocialRedirectUriResolver: GetSocialRedirectUriResolver | undefined = undefined
 
   private switchChainResolver: SwitchChainResolver = undefined
 
@@ -62,15 +76,42 @@ export class W3mFrameProvider {
 
   private smartAccountEnabledNetworksResolver: SmartAccountEnabledNetworksResolver = undefined
 
-  private initSmartAccountResolver: InitSmartAccountResolver = undefined
-
   private setPreferredAccountResolver: SetPreferredAccountResolver = undefined
 
+  public logger: Logger
+
+  public chunkLoggerController: ChunkLoggerController | null
+
   public constructor(projectId: string) {
+    const loggerOptions = getDefaultLoggerOptions({
+      level: DEFAULT_LOG_LEVEL
+    })
+
+    const { logger, chunkLoggerController } = generatePlatformLogger({
+      opts: loggerOptions
+    })
+    this.logger = generateChildLogger(logger, this.constructor.name)
+    this.chunkLoggerController = chunkLoggerController
+
+    if (typeof window !== 'undefined' && this.chunkLoggerController?.downloadLogsBlobInBrowser) {
+      // @ts-expect-error any
+      if (!window.dowdownloadAppKitLogsBlob) {
+        // @ts-expect-error any
+        window.downloadAppKitLogsBlob = {}
+      }
+      // @ts-expect-error any
+      window.downloadAppKitLogsBlob['sdk'] = () => {
+        if (this.chunkLoggerController?.downloadLogsBlobInBrowser) {
+          this.chunkLoggerController.downloadLogsBlobInBrowser({
+            projectId
+          })
+        }
+      }
+    }
+
     this.w3mFrame = new W3mFrame(projectId, true)
     this.w3mFrame.events.onFrameEvent(event => {
-      // eslint-disable-next-line no-console
-      console.log('💻 received', event)
+      this.logger.info({ event }, 'Event received')
 
       switch (event.type) {
         case W3mFrameConstants.FRAME_CONNECT_EMAIL_SUCCESS:
@@ -85,6 +126,14 @@ export class W3mFrameProvider {
           return this.onConnectOtpSuccess()
         case W3mFrameConstants.FRAME_CONNECT_OTP_ERROR:
           return this.onConnectOtpError(event)
+        case W3mFrameConstants.FRAME_CONNECT_SOCIAL_SUCCESS:
+          return this.onConnectSocialSuccess(event)
+        case W3mFrameConstants.FRAME_CONNECT_SOCIAL_ERROR:
+          return this.onConnectSocialError(event)
+        case W3mFrameConstants.FRAME_GET_SOCIAL_REDIRECT_URI_SUCCESS:
+          return this.onGetSocialRedirectUriSuccess(event)
+        case W3mFrameConstants.FRAME_GET_SOCIAL_REDIRECT_URI_ERROR:
+          return this.onGetSocialRedirectUriError(event)
         case W3mFrameConstants.FRAME_GET_USER_SUCCESS:
           return this.onConnectSuccess(event)
         case W3mFrameConstants.FRAME_GET_USER_ERROR:
@@ -112,7 +161,7 @@ export class W3mFrameProvider {
         case W3mFrameConstants.FRAME_SESSION_UPDATE:
           return this.onSessionUpdate(event)
         case W3mFrameConstants.FRAME_UPDATE_EMAIL_SUCCESS:
-          return this.onUpdateEmailSuccess()
+          return this.onUpdateEmailSuccess(event)
         case W3mFrameConstants.FRAME_UPDATE_EMAIL_ERROR:
           return this.onUpdateEmailError(event)
         case W3mFrameConstants.FRAME_UPDATE_EMAIL_PRIMARY_OTP_SUCCESS:
@@ -135,14 +184,10 @@ export class W3mFrameProvider {
           return this.onSmartAccountEnabledNetworksSuccess(event)
         case W3mFrameConstants.FRAME_GET_SMART_ACCOUNT_ENABLED_NETWORKS_ERROR:
           return this.onSmartAccountEnabledNetworksError(event)
-        case W3mFrameConstants.FRAME_INIT_SMART_ACCOUNT_SUCCESS:
-          return this.onInitSmartAccountSuccess(event)
-        case W3mFrameConstants.FRAME_INIT_SMART_ACCOUNT_ERROR:
-          return this.onInitSmartAccountError(event)
         case W3mFrameConstants.FRAME_SET_PREFERRED_ACCOUNT_SUCCESS:
-          return this.onPreferSmartAccountSuccess(event)
+          return this.onSetPreferredAccountSuccess()
         case W3mFrameConstants.FRAME_SET_PREFERRED_ACCOUNT_ERROR:
-          return this.onPreferSmartAccountError()
+          return this.onSetPreferredAccountError()
 
         default:
           return null
@@ -212,12 +257,29 @@ export class W3mFrameProvider {
     })
   }
 
+  public async getSocialRedirectUri(
+    payload: W3mFrameTypes.Requests['AppGetSocialRedirectUriRequest']
+  ) {
+    await this.w3mFrame.frameLoadPromise
+
+    this.w3mFrame.events.postAppEvent({
+      type: W3mFrameConstants.APP_GET_SOCIAL_REDIRECT_URI,
+      payload
+    })
+
+    return new Promise<W3mFrameTypes.Responses['FrameGetSocialRedirectUriResponse']>(
+      (resolve, reject) => {
+        this.getSocialRedirectUriResolver = { resolve, reject }
+      }
+    )
+  }
+
   public async updateEmail(payload: W3mFrameTypes.Requests['AppUpdateEmailRequest']) {
     await this.w3mFrame.frameLoadPromise
     W3mFrameHelpers.checkIfAllowedToTriggerEmail()
     this.w3mFrame.events.postAppEvent({ type: W3mFrameConstants.APP_UPDATE_EMAIL, payload })
 
-    return new Promise((resolve, reject) => {
+    return new Promise<W3mFrameTypes.Responses['FrameUpdateEmailResponse']>((resolve, reject) => {
       this.updateEmailResolver = { resolve, reject }
     })
   }
@@ -283,18 +345,7 @@ export class W3mFrameProvider {
     )
   }
 
-  public async initSmartAccount() {
-    await this.w3mFrame.frameLoadPromise
-    this.w3mFrame.events.postAppEvent({ type: W3mFrameConstants.APP_INIT_SMART_ACCOUNT })
-
-    return new Promise<W3mFrameTypes.Responses['FrameInitSmartAccountResponse']>(
-      (resolve, reject) => {
-        this.initSmartAccountResolver = { resolve, reject }
-      }
-    )
-  }
-
-  public async setPreferredAccount(type: 'eoa' | 'smartAccount') {
+  public async setPreferredAccount(type: W3mFrameTypes.AccountType) {
     await this.w3mFrame.frameLoadPromise
     this.w3mFrame.events.postAppEvent({
       type: W3mFrameConstants.APP_SET_PREFERRED_ACCOUNT,
@@ -317,6 +368,17 @@ export class W3mFrameProvider {
 
     return new Promise<W3mFrameTypes.Responses['FrameGetUserResponse']>((resolve, reject) => {
       this.connectResolver = { resolve, reject }
+    })
+  }
+
+  public async connectSocial(uri: string) {
+    this.w3mFrame.events.postAppEvent({
+      type: W3mFrameConstants.APP_CONNECT_SOCIAL,
+      payload: { uri }
+    })
+
+    return new Promise<W3mFrameTypes.Responses['FrameGetUserResponse']>((resolve, reject) => {
+      this.connectSocialResolver = { resolve, reject }
     })
   }
 
@@ -374,10 +436,12 @@ export class W3mFrameProvider {
     })
   }
 
-  public onIsConnected(callback: () => void) {
+  public onIsConnected(
+    callback: (request: W3mFrameTypes.Responses['FrameGetUserResponse']) => void
+  ) {
     this.w3mFrame.events.onFrameEvent(event => {
       if (event.type === W3mFrameConstants.FRAME_GET_USER_SUCCESS) {
-        callback()
+        callback(event.payload)
       }
     })
   }
@@ -396,12 +460,24 @@ export class W3mFrameProvider {
     })
   }
 
-  public onInitSmartAccount(callback: (isDeployed: boolean) => void) {
+  public onSetPreferredAccount(
+    callback: ({ type, address }: { type: string; address?: string }) => void
+  ) {
     this.w3mFrame.events.onFrameEvent(event => {
-      if (event.type === W3mFrameConstants.FRAME_INIT_SMART_ACCOUNT_SUCCESS) {
-        callback(event.payload.isDeployed)
-      } else if (event.type === W3mFrameConstants.FRAME_INIT_SMART_ACCOUNT_ERROR) {
-        callback(false)
+      if (event.type === W3mFrameConstants.FRAME_SET_PREFERRED_ACCOUNT_SUCCESS) {
+        callback(event.payload)
+      } else if (event.type === W3mFrameConstants.FRAME_SET_PREFERRED_ACCOUNT_ERROR) {
+        callback({ type: W3mFrameRpcConstants.ACCOUNT_TYPES.EOA })
+      }
+    })
+  }
+
+  public onGetSmartAccountEnabledNetworks(callback: (networks: number[]) => void) {
+    this.w3mFrame.events.onFrameEvent(event => {
+      if (event.type === W3mFrameConstants.FRAME_GET_SMART_ACCOUNT_ENABLED_NETWORKS_SUCCESS) {
+        callback(event.payload.smartAccountEnabledNetworks)
+      } else if (event.type === W3mFrameConstants.FRAME_GET_SMART_ACCOUNT_ENABLED_NETWORKS_ERROR) {
+        callback([])
       }
     })
   }
@@ -445,6 +521,7 @@ export class W3mFrameProvider {
   ) {
     this.setEmailLoginSuccess(event.payload.email)
     this.setLastUsedChainId(event.payload.chainId)
+
     this.connectResolver?.resolve(event.payload)
   }
 
@@ -454,11 +531,26 @@ export class W3mFrameProvider {
     this.connectResolver?.reject(event.payload.message)
   }
 
+  private onConnectSocialSuccess(
+    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/CONNECT_SOCIAL_SUCCESS' }>
+  ) {
+    if (event.payload.userName) {
+      this.setSocialLoginSuccess(event.payload.userName)
+    }
+    this.connectSocialResolver?.resolve(event.payload)
+  }
+
+  private onConnectSocialError(
+    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/CONNECT_SOCIAL_ERROR' }>
+  ) {
+    this.connectSocialResolver?.reject(event.payload.message)
+  }
+
   private onIsConnectedSuccess(
     event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/IS_CONNECTED_SUCCESS' }>
   ) {
     if (!event.payload.isConnected) {
-      this.deleteEmailLoginCache()
+      this.deleteAuthLoginCache()
     }
     this.isConnectedResolver?.resolve(event.payload)
   }
@@ -482,9 +574,21 @@ export class W3mFrameProvider {
     this.getChainIdResolver?.reject(event.payload.message)
   }
 
+  private onGetSocialRedirectUriSuccess(
+    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/GET_SOCIAL_REDIRECT_URI_SUCCESS' }>
+  ) {
+    this.getSocialRedirectUriResolver?.resolve(event.payload)
+  }
+
+  private onGetSocialRedirectUriError(
+    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/GET_SOCIAL_REDIRECT_URI_ERROR' }>
+  ) {
+    this.getSocialRedirectUriResolver?.reject(event.payload.message)
+  }
+
   private onSignOutSuccess() {
     this.disconnectResolver?.resolve(undefined)
-    this.deleteEmailLoginCache()
+    this.deleteAuthLoginCache()
   }
 
   private onSignOutError(
@@ -527,8 +631,10 @@ export class W3mFrameProvider {
     }
   }
 
-  private onUpdateEmailSuccess() {
-    this.updateEmailResolver?.resolve(undefined)
+  private onUpdateEmailSuccess(
+    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/UPDATE_EMAIL_SUCCESS' }>
+  ) {
+    this.updateEmailResolver?.resolve(event.payload)
     this.setNewLastEmailLoginTime()
   }
 
@@ -594,6 +700,7 @@ export class W3mFrameProvider {
       { type: '@w3m-frame/GET_SMART_ACCOUNT_ENABLED_NETWORKS_SUCCESS' }
     >
   ) {
+    this.persistSmartAccountEnabledNetworks(event.payload.smartAccountEnabledNetworks)
     this.smartAccountEnabledNetworksResolver?.resolve(event.payload)
   }
 
@@ -603,29 +710,15 @@ export class W3mFrameProvider {
       { type: '@w3m-frame/GET_SMART_ACCOUNT_ENABLED_NETWORKS_ERROR' }
     >
   ) {
+    this.persistSmartAccountEnabledNetworks([])
     this.smartAccountEnabledNetworksResolver?.reject(event.payload.message)
   }
 
-  private onInitSmartAccountSuccess(
-    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/INIT_SMART_ACCOUNT_SUCCESS' }>
-  ) {
-    this.initSmartAccountResolver?.resolve(event.payload)
-  }
-
-  private onInitSmartAccountError(
-    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/INIT_SMART_ACCOUNT_ERROR' }>
-  ) {
-    this.initSmartAccountResolver?.reject(event.payload.message)
-  }
-
-  private onPreferSmartAccountSuccess(
-    event: Extract<W3mFrameTypes.FrameEvent, { type: '@w3m-frame/SET_PREFERRED_ACCOUNT_SUCCESS' }>
-  ) {
-    this.persistPreferredAccount(event.payload.type as 'eoa' | 'smartAccount')
+  private onSetPreferredAccountSuccess() {
     this.setPreferredAccountResolver?.resolve(undefined)
   }
 
-  private onPreferSmartAccountError() {
+  private onSetPreferredAccountError() {
     this.setPreferredAccountResolver?.reject()
   }
 
@@ -634,16 +727,22 @@ export class W3mFrameProvider {
     W3mFrameStorage.set(W3mFrameConstants.LAST_EMAIL_LOGIN_TIME, Date.now().toString())
   }
 
+  private setSocialLoginSuccess(username: string) {
+    W3mFrameStorage.set(W3mFrameConstants.SOCIAL_USERNAME, username)
+  }
+
   private setEmailLoginSuccess(email: string) {
     W3mFrameStorage.set(W3mFrameConstants.EMAIL, email)
     W3mFrameStorage.set(W3mFrameConstants.EMAIL_LOGIN_USED_KEY, 'true')
     W3mFrameStorage.delete(W3mFrameConstants.LAST_EMAIL_LOGIN_TIME)
   }
 
-  private deleteEmailLoginCache() {
+  private deleteAuthLoginCache() {
     W3mFrameStorage.delete(W3mFrameConstants.EMAIL_LOGIN_USED_KEY)
     W3mFrameStorage.delete(W3mFrameConstants.EMAIL)
     W3mFrameStorage.delete(W3mFrameConstants.LAST_USED_CHAIN_KEY)
+    W3mFrameStorage.delete(W3mFrameConstants.SOCIAL_USERNAME)
+    W3mFrameStorage.delete(W3mFrameConstants.SOCIAL, true)
   }
 
   private setLastUsedChainId(chainId: number) {
@@ -654,7 +753,7 @@ export class W3mFrameProvider {
     return Number(W3mFrameStorage.get(W3mFrameConstants.LAST_USED_CHAIN_KEY))
   }
 
-  private persistPreferredAccount(type: 'eoa' | 'smartAccount') {
-    W3mFrameStorage.set(W3mFrameConstants.PREFERRED_ACCOUNT_TYPE, type)
+  private persistSmartAccountEnabledNetworks(networks: number[]) {
+    W3mFrameStorage.set(W3mFrameConstants.SMART_ACCOUNT_ENABLED_NETWORKS, networks.join(','))
   }
 }

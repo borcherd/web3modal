@@ -1,3 +1,5 @@
+export type CaipNetworkId = `${string}:${string}`
+
 export type CoinbaseTransactionStatus =
   | 'ONRAMP_TRANSACTION_STATUS_SUCCESS'
   | 'ONRAMP_TRANSACTION_STATUS_IN_PROGRESS'
@@ -77,7 +79,8 @@ export interface Balance {
   name: string
   symbol: string
   chainId: string
-  value: number
+  address?: string
+  value?: number
   price: number
   quantity: BalanceQuantity
   iconUrl: string

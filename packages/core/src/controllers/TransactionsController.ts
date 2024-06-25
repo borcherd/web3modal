@@ -4,6 +4,8 @@ import { OptionsController } from './OptionsController.js'
 import { EventsController } from './EventsController.js'
 import { SnackController } from './SnackController.js'
 import { BlockchainApiController } from './BlockchainApiController.js'
+import { AccountController } from './AccountController.js'
+import { W3mFrameRpcConstants } from '@web3modal/wallet'
 
 // -- Types --------------------------------------------- //
 type TransactionByMonthMap = Record<number, Transaction[]>
@@ -80,12 +82,16 @@ export const TransactionsController = {
         properties: {
           address: accountAddress,
           projectId,
-          cursor: state.next
+          cursor: state.next,
+          isSmartAccount:
+            AccountController.state.preferredAccountType ===
+            W3mFrameRpcConstants.ACCOUNT_TYPES.SMART_ACCOUNT
         }
       })
       SnackController.showError('Failed to fetch transactions')
       state.loading = false
       state.empty = true
+      state.next = undefined
     }
   },
 
@@ -123,6 +129,10 @@ export const TransactionsController = {
 
       return !isAllSpam
     })
+  },
+
+  clearCursor() {
+    state.next = undefined
   },
 
   resetTransactions() {

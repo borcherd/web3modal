@@ -1,10 +1,14 @@
-import { subscribeKey as subKey } from 'valtio/utils'
+import { subscribeKey as subKey } from 'valtio/vanilla/utils'
 import { proxy, ref, subscribe as sub } from 'valtio/vanilla'
 import { CoreHelperUtil } from '../utils/CoreHelperUtil.js'
-import type { CaipAddress } from '../utils/TypeUtil.js'
+import type { CaipAddress, ConnectedWalletInfo, SocialProvider } from '../utils/TypeUtil.js'
 import type { Balance } from '@web3modal/common'
 import { BlockchainApiController } from './BlockchainApiController.js'
 import { SnackController } from './SnackController.js'
+import { SwapController } from './SwapController.js'
+import { SwapApiUtil } from '../utils/SwapApiUtil.js'
+import type { W3mFrameTypes } from '@web3modal/wallet'
+import { NetworkController } from './NetworkController.js'
 
 // -- Types --------------------------------------------- //
 export interface AccountControllerState {
@@ -18,7 +22,11 @@ export interface AccountControllerState {
   profileImage?: string | null
   addressExplorerUrl?: string
   smartAccountDeployed?: boolean
+  socialProvider?: SocialProvider
   tokenBalance?: Balance[]
+  connectedWalletInfo?: ConnectedWalletInfo
+  preferredAccountType?: W3mFrameTypes.AccountType
+  socialWindow?: Window
 }
 
 type StateKey = keyof AccountControllerState
@@ -27,7 +35,8 @@ type StateKey = keyof AccountControllerState
 const state = proxy<AccountControllerState>({
   isConnected: false,
   currentTab: 0,
-  tokenBalance: []
+  tokenBalance: [],
+  smartAccountDeployed: false
 })
 
 // -- Controller ---------------------------------------- //
@@ -85,12 +94,39 @@ export const AccountController = {
     }
   },
 
-  async fetchTokenBalance() {
-    try {
-      if (state.address) {
-        const response = await BlockchainApiController.getBalance(state.address)
+  setConnectedWalletInfo(connectedWalletInfo: AccountControllerState['connectedWalletInfo']) {
+    state.connectedWalletInfo = connectedWalletInfo
+  },
 
-        this.setTokenBalance(response.balances)
+  setPreferredAccountType(preferredAccountType: AccountControllerState['preferredAccountType']) {
+    state.preferredAccountType = preferredAccountType
+  },
+
+  setSocialProvider(socialProvider: AccountControllerState['socialProvider']) {
+    if (socialProvider) {
+      state.socialProvider = socialProvider
+    }
+  },
+
+  setSocialWindow(socialWindow: AccountControllerState['socialWindow']) {
+    if (socialWindow) {
+      state.socialWindow = ref(socialWindow)
+    }
+  },
+
+  async fetchTokenBalance() {
+    const chainId = NetworkController.state.caipNetwork?.id
+
+    try {
+      if (state.address && chainId) {
+        const response = await BlockchainApiController.getBalance(state.address, chainId)
+
+        const filteredBalances = response.balances.filter(
+          balance => balance.quantity.decimals !== '0'
+        )
+
+        this.setTokenBalance(filteredBalances)
+        SwapController.setBalances(SwapApiUtil.mapBalancesToSwapTokens(response.balances))
       }
     } catch (error) {
       SnackController.showError('Failed to fetch token balance')
@@ -99,6 +135,8 @@ export const AccountController = {
 
   resetAccount() {
     state.isConnected = false
+    state.smartAccountDeployed = false
+    state.currentTab = 0
     state.caipAddress = undefined
     state.address = undefined
     state.balance = undefined
@@ -106,7 +144,10 @@ export const AccountController = {
     state.profileName = undefined
     state.profileImage = undefined
     state.addressExplorerUrl = undefined
-    state.smartAccountDeployed = undefined
-    state.currentTab = 0
+    state.tokenBalance = []
+    state.connectedWalletInfo = undefined
+    state.preferredAccountType = undefined
+    state.socialProvider = undefined
+    state.socialWindow = undefined
   }
 }
