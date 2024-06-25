@@ -29,7 +29,7 @@ export class W3mWalletSendPreviewView extends LitElement {
 
   @state() private receiverProfileImageUrl = SendController.state.receiverProfileImageUrl
 
-  @state() private gasPriceInUSD = SendController.state.gasPriceInUSD
+  // @state() private gasPriceInUSD = SendController.state.gasPriceInUSD
 
   @state() private caipNetwork = NetworkController.state.caipNetwork
 
@@ -47,7 +47,7 @@ export class W3mWalletSendPreviewView extends LitElement {
           this.token = val.token
           this.sendTokenAmount = val.sendTokenAmount
           this.receiverAddress = val.receiverAddress
-          this.gasPriceInUSD = val.gasPriceInUSD
+          // this.gasPriceInUSD = val.gasPriceInUSD
           this.receiverProfileName = val.receiverProfileName
           this.receiverProfileImageUrl = val.receiverProfileImageUrl
           this.type = val.type
@@ -89,7 +89,6 @@ export class W3mWalletSendPreviewView extends LitElement {
             >Generate link</wui-text
           >`
 
-    return html` <wui-flex flexDirection="column" .padding=${['s', 'l', 'l', 'l'] as const}>
     return html` <wui-flex flexDirection="column" .padding=${['0', 'l', 'l', 'l'] as const}>
       <wui-flex gap="xs" flexDirection="column" .padding=${['0', 'xs', '0', 'xs'] as const}>
         <wui-flex alignItems="center" justifyContent="space-between">
@@ -133,7 +132,6 @@ export class W3mWalletSendPreviewView extends LitElement {
         <w3m-wallet-send-details
           .caipNetwork=${this.caipNetwork}
           .receiverAddress=${this.receiverAddress}
-          .networkFee=${this.gasPriceInUSD}
         ></w3m-wallet-send-details>
         <wui-flex justifyContent="center" gap="xxs" .padding=${['s', '0', '0', '0'] as const}>
           <wui-icon size="sm" color="fg-200" name="warningCircle"></wui-icon>
@@ -180,7 +178,7 @@ export class W3mWalletSendPreviewView extends LitElement {
   }
 
   onSendClick() {
-    SendController.sendToken()
+    // SendController.sendToken()
   }
 
   private onCancelClick() {

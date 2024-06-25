@@ -1,6 +1,5 @@
 import { subscribeKey as subKey } from 'valtio/vanilla/utils'
 import { proxy, ref, subscribe as sub } from 'valtio/vanilla'
-import { type Balance } from '@web3modal/common'
 import { erc20ABI } from '@web3modal/common'
 import { RouterController } from './RouterController.js'
 import { AccountController } from './AccountController.js'
@@ -17,12 +16,7 @@ import {
   prepareDepositTxs,
   setFeeOptions
 } from '@squirrel-labs/peanut-sdk'
-import { CoreHelperUtil } from '../utils/CoreHelperUtil'
-import { SnackController } from './SnackController'
-import { ConnectionController } from './ConnectionController'
-import { AccountController } from './AccountController'
 
-import { NetworkController } from './NetworkController'
 import type { CaipNetwork } from '../..'
 import { ModalController } from './ModalController'
 
@@ -49,7 +43,6 @@ export interface SendControllerState {
   receiverProfileImageUrl?: string
   gasPrice?: bigint
   gasPriceInUSD?: number
-  loading: boolean
   type?: 'Address' | 'Link'
   createdLink?: string
   loading?: boolean
@@ -254,10 +247,6 @@ export const SendController = {
     state.createdLink = createdLink
   },
 
-  setLoading(loading: SendControllerState['loading']) {
-    state.loading = loading
-  },
-
   resetSend() {
     state.token = undefined
     state.sendTokenAmount = undefined
@@ -356,7 +345,7 @@ export const SendController = {
           gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined
         })
 
-        signedTxsResponse.push(hash.toString())
+        signedTxsResponse.push(hash?.toString() ?? '')
         idx++
       }
 
